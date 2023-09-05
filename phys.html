@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+</head>
+    <style>
+        #heatmapCanvas {
+            border: 1px solid black;
+        }
+    </style>
+
+<body>
+    <label for="Lx">Length x</label>
+    <input type="number" id="Lx" value="1" />
+
+    <label for="nx">nx:</label>
+    <input type="number" id="nx" value="1" />
+
+    <label for="nxLimit">nx Limit:</label>
+    <input type="number" id="nxLimit" value="5" />
+
+    <p></p>
+
+    <label for="Ly">Length y</label>
+    <input type="number" id="Ly" value="1" />
+
+    <label for="ny">ny:</label>
+    <input type="number" id="ny" value="1" />
+
+    <label for="nyLimit">ny Limit:</label>
+    <input type="number" id="nyLimit" value="5" />
+
+    <p></p>
+
+    <label for="resolution">Resolution:</label>
+    <input type="number" id="resolution" value="1000" />
+
+    <p></p>
+
+   
+   
+
+    <label for="interval">Interval:</label>
+    <input type="number" id="interval" value="1" />
+
+  
+ <input type="button" onclick="run()" value="Generate probability function" />
+
+    <input type="button" onclick="startCycle()" value="Start Cycling" />
+    <input type="button" onclick="stopCycle()" value="Stop Cycling" />
+  <p></p>
+    <canvas id="heatmapCanvas" width="800" height="800"></canvas>
+
+    <script>
+        let cycleInterval;
+
+        function run() {
+            const canvas = document.getElementById("heatmapCanvas");
+            const ctx = canvas.getContext("2d");
+
+            const xval = parseFloat(document.getElementById("Lx").value);
+            const yval = parseFloat(document.getElementById("Ly").value);
+            const nxval = parseFloat(document.getElementById("nx").value);
+            const nyval = parseFloat(document.getElementById("ny").value);
+            const resolution = parseFloat(document.getElementById("resolution").value);
+
+            const Box = Array(resolution * resolution).fill(0);
+
+            for (let y = 1; y <= resolution; y++) {
+                for (let x = 1; x <= resolution; x++) {
+                    const xPos = (xval * x) / resolution;
+                    const yPos = (yval * y) / resolution;
+                    const i = (y - 1) * resolution + x - 1;
+                    Box[i] = Math.sqrt(2 / xval) * Math.sin(nxval * Math.PI / xval * xPos) * Math.sqrt(2 / yval) * Math.sin(nyval * Math.PI / yval * yPos);
+                }
+            }
+
+            // Draw heatmap
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const value = getAverageValue(Box, x, y, resolution, canvas.width, canvas.height);
+                    ctx.fillStyle = getColorForPercentage(value);
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+        }
+
+        function getAverageValue(Box, x, y, resolution, canvasWidth, canvasHeight) {
+            const xStart = Math.floor(x * resolution / canvasWidth);
+            const yStart = Math.floor(y * resolution / canvasHeight);
+            const xEnd = Math.floor((x + 1) * resolution / canvasWidth);
+            const yEnd = Math.floor((y + 1) * resolution / canvasHeight);
+
+            let sum = 0;
+            let count = 0;
+
+            for (let y = yStart; y < yEnd; y++) {
+                for (let x = xStart; x < xEnd; x++) {
+                    sum += Box[y * resolution + x] * Box[y * resolution + x];
+                    count++;
+                }
+            }
+
+            return count ? sum / count : 0;
+        }
+
+        function getColorForPercentage(pct) {
+            const percentColors = [
+                { pct: 0.0, color: { r: 0x00, g: 0x00, b: 0xff } },
+                { pct: 1.0, color: { r: 0xff, g: 0xff, b: 0x00 } }
+            ];
+
+            for (var i = 1; i < percentColors.length - 1; i++) {
+                if (pct < percentColors[i].pct) {
+                    break;
+                }
+            }
+            const lower = percentColors[i - 1];
+            const upper = percentColors[i];
+            const range = upper.pct - lower.pct;
+            const rangePct = (pct - lower.pct) / range;
+            const pctLower = 1 - rangePct;
+            const pctUpper = rangePct;
+            const color = {
+                r: Math.floor(lower.color.r * pctLower + upper.color.r * pctUpper),
+                g: Math.floor(lower.color.g * pctLower + upper.color.g * pctUpper),
+                b: Math.floor(lower.color.b * pctLower + upper.color.b * pctUpper)
+            };
+            return 'rgb(' + [color.r, color.g, color.b].join(',') + ')';
+        }
+
+        function startCycle() {
+          
+            const interval = parseFloat(document.getElementById("interval").value);
+            const nxLimit = parseFloat(document.getElementById("nxLimit").value);
+            const nyLimit = parseFloat(document.getElementById("nyLimit").value);
+            
+            if (cycleInterval) {
+                clearInterval(cycleInterval);
+            }
+
+            cycleInterval = setInterval(() => {
+                let nxVal = parseFloat(document.getElementById("nx").value);
+                let nyVal = parseFloat(document.getElementById("ny").value);
+                
+                nxVal += interval;
+				 nyVal += interval;
+                if (nxVal > nxLimit) {
+                    nxVal = 0;
+                }
+				 if (nyVal > nyLimit) {
+                        nyVal = 0;
+                    }
+                 document.getElementById("ny").value = nyVal;
+                document.getElementById("nx").value = nxVal;
+
+                run();
+            });
+        }
+
+        function stopCycle() {
+            if (cycleInterval) {
+                clearInterval(cycleInterval);
+            }
+        }
+    </script>
+</body>
+</html>
